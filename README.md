@@ -77,6 +77,11 @@ pip install -r requirements.txt
 uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
 # Docs → http://localhost:8000/docs
 
+# You Now Have 3 Live URLs 
+# 🌐 UIramcharansinghramavath.github.io/customer-churn-mlops
+# 🚀 APIcustomer-churn-mlops-3wyj.onrender.com/docs
+# 💻 Codegithub.com/RamcharanSinghRamavath/customer-churn-mlops
+
 # 4. Run tests
 pytest tests/ -v
 
