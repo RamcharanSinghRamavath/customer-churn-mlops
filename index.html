@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChurnShield — Customer Churn Prediction</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;background:#0a0f1e;color:#e8eaf0;min-height:100vh}
+
+  /* ── Hero ── */
+  .hero{background:linear-gradient(135deg,#0a0f1e 0%,#0f1a35 60%,#0a1628 100%);padding:3.5rem 2rem 2.5rem;text-align:center;border-bottom:1px solid #1e2d4a}
+  .live-badge{display:inline-flex;align-items:center;gap:8px;background:#0d2240;border:1px solid #1a4a7a;color:#5ba3e8;font-size:12px;padding:5px 14px;border-radius:20px;margin-bottom:1.5rem;font-family:'DM Mono',monospace}
+  .live-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+  .hero h1{font-size:2.8rem;font-weight:600;letter-spacing:-0.03em;margin-bottom:0.75rem;background:linear-gradient(135deg,#e8eaf0 0%,#7aafd8 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .hero p{color:#7a8daa;font-size:1.05rem;max-width:560px;margin:0 auto 2.5rem;line-height:1.7}
+  .stats{display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap}
+  .stat{background:#0d1e38;border:1px solid #1a2d4d;border-radius:14px;padding:1.25rem 2rem;text-align:center;min-width:130px}
+  .stat-val{font-size:1.8rem;font-weight:600;color:#5ba3e8;font-family:'DM Mono',monospace;line-height:1}
+  .stat-lbl{font-size:11px;color:#4a5d7a;margin-top:6px;text-transform:uppercase;letter-spacing:0.08em}
+
+  /* ── Pipeline section ── */
+  .section{max-width:900px;margin:0 auto;padding:2.5rem 1.5rem 0}
+  .section-label{font-size:11px;font-weight:500;color:#3a5a7a;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:1rem}
+  .pipeline{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#1a2d4d;border-radius:12px;overflow:hidden;margin-bottom:2.5rem}
+  .pipe-step{background:#0d1e38;padding:1.25rem 1rem;position:relative}
+  .pipe-step:not(:last-child)::after{content:'→';position:absolute;right:-10px;top:50%;transform:translateY(-50%);color:#2a4a7a;font-size:16px;z-index:1}
+  .pipe-num{font-size:11px;font-family:'DM Mono',monospace;color:#2a5a9a;margin-bottom:0.5rem}
+  .pipe-title{font-size:13px;font-weight:500;color:#c8d4e8;margin-bottom:0.25rem}
+  .pipe-desc{font-size:11px;color:#4a5d7a;line-height:1.5}
+
+  /* ── Form ── */
+  .form-wrap{max-width:900px;margin:0 auto;padding:0 1.5rem 3rem}
+  .card{background:#0d1e38;border:1px solid #1a2d4d;border-radius:16px;padding:2rem;margin-bottom:1.25rem}
+  .card-title{font-size:14px;font-weight:500;color:#7aafd8;margin-bottom:1.5rem;display:flex;align-items:center;gap:8px}
+  .card-title::before{content:'';width:3px;height:14px;background:#2a6ab8;border-radius:2px;display:inline-block}
+  .form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem}
+  .field{display:flex;flex-direction:column;gap:7px}
+  label{font-size:12px;color:#4a5d7a;font-weight:500;letter-spacing:0.02em}
+  input[type=number]{background:#060e1d;border:1px solid #1a2d4d;color:#e8eaf0;padding:10px 13px;border-radius:9px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.2s;width:100%}
+  input[type=number]:focus{border-color:#2a6ab8}
+  .toggles-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin-top:1.25rem}
+  .toggle-group{display:flex;flex-direction:column;gap:7px}
+  .toggle-row{display:flex;gap:6px}
+  .tog{background:#060e1d;border:1px solid #1a2d4d;color:#4a5d7a;padding:8px 16px;border-radius:9px;font-size:13px;cursor:pointer;transition:all 0.18s;font-family:'DM Sans',sans-serif;flex:1;text-align:center}
+  .tog:hover{border-color:#2a5a8a;color:#7aafd8}
+  .tog.on{background:#0d2e5a;border-color:#2a6ab8;color:#5ba3e8;font-weight:500}
+
+  .predict-btn{width:100%;background:#1a5cb8;color:#fff;border:none;padding:15px;border-radius:11px;font-size:15px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;margin-top:1.5rem;letter-spacing:0.01em}
+  .predict-btn:hover{background:#2070d0;transform:translateY(-1px)}
+  .predict-btn:active{transform:translateY(0)}
+  .predict-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+
+  /* ── Loading ── */
+  .loading{text-align:center;padding:2.5rem;display:none}
+  .loading.show{display:block}
+  .spinner{width:30px;height:30px;border:2px solid #1a2d4d;border-top:2px solid #5ba3e8;border-radius:50%;animation:spin 0.75s linear infinite;margin:0 auto 1rem}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading p{font-size:13px;color:#4a5d7a}
+
+  /* ── Result ── */
+  .result{background:#0d1e38;border-radius:16px;padding:2rem;display:none}
+  .result.show{display:block}
+  .result.HIGH{border:1px solid #6b1f1f}
+  .result.MEDIUM{border:1px solid #6b4a0f}
+  .result.LOW{border:1px solid #1a5a2a}
+
+  .result-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.75rem}
+  .risk-pill{padding:6px 18px;border-radius:20px;font-size:13px;font-weight:500;font-family:'DM Mono',monospace}
+  .risk-pill.HIGH{background:#2a0808;color:#f87171;border:1px solid #6b1f1f}
+  .risk-pill.MEDIUM{background:#2a1a08;color:#fbbf24;border:1px solid #6b4a0f}
+  .risk-pill.LOW{background:#082a14;color:#4ade80;border:1px solid #1a5a2a}
+
+  .prob-center{text-align:center;margin-bottom:1.5rem}
+  .big-prob{font-size:4rem;font-weight:600;font-family:'DM Mono',monospace;line-height:1}
+  .big-prob.HIGH{color:#f87171}
+  .big-prob.MEDIUM{color:#fbbf24}
+  .big-prob.LOW{color:#4ade80}
+  .prob-sub{font-size:12px;color:#4a5d7a;margin-top:6px}
+
+  .bar-track{background:#060e1d;border-radius:6px;height:8px;margin:1rem 0;overflow:hidden}
+  .bar-fill{height:100%;border-radius:6px;width:0;transition:width 1.2s cubic-bezier(.16,1,.3,1)}
+  .bar-fill.HIGH{background:linear-gradient(90deg,#991b1b,#f87171)}
+  .bar-fill.MEDIUM{background:linear-gradient(90deg,#92400e,#fbbf24)}
+  .bar-fill.LOW{background:linear-gradient(90deg,#166534,#4ade80)}
+
+  .result-meta{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem}
+  .meta-box{background:#060e1d;border-radius:10px;padding:1rem}
+  .meta-label{font-size:11px;color:#3a5a7a;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:5px}
+  .meta-val{font-size:14px;color:#c8d4e8;font-weight:500}
+
+  .rec{background:#060e1d;border-left:3px solid #2a6ab8;border-radius:0 10px 10px 0;padding:1rem 1.25rem}
+  .rec-label{font-size:11px;color:#3a5a7a;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px}
+  .rec-text{font-size:13px;color:#c8d4e8;line-height:1.6}
+
+  .api-footer{margin-top:1.25rem;text-align:center;font-size:11px;color:#2a4a6a;font-family:'DM Mono',monospace}
+
+  /* ── Error ── */
+  .error{background:#180808;border:1px solid #6b1f1f;border-radius:10px;padding:1rem 1.25rem;color:#f87171;font-size:13px;display:none;margin-top:1rem;line-height:1.6}
+  .error.show{display:block}
+
+  /* ── Tech stack footer ── */
+  .tech-footer{max-width:900px;margin:0 auto;padding:1rem 1.5rem 3rem}
+  .tech-label{font-size:11px;color:#2a4a6a;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.75rem}
+  .tags{display:flex;flex-wrap:wrap;gap:0.5rem}
+  .tag{background:#060e1d;border:1px solid #1a2d4d;color:#3a5a7a;padding:5px 12px;border-radius:8px;font-size:12px;font-family:'DM Mono',monospace}
+
+  @media(max-width:640px){
+    .hero h1{font-size:2rem}
+    .form-grid,.toggles-grid,.pipeline{grid-template-columns:1fr}
+    .stats{gap:0.75rem}
+    .pipe-step::after{display:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="live-badge">
+    <span class="live-dot"></span>
+    Live API — customer-churn-mlops-3wyj.onrender.com
+  </div>
+  <h1>ChurnShield</h1>
+  <p>An end-to-end MLOps pipeline that predicts which telecom customers are likely to cancel — so businesses can take action before it's too late.</p>
+  <div class="stats">
+    <div class="stat"><div class="stat-val">86%</div><div class="stat-lbl">ROC-AUC Score</div></div>
+    <div class="stat"><div class="stat-val">7,043</div><div class="stat-lbl">Training Records</div></div>
+    <div class="stat"><div class="stat-val">3</div><div class="stat-lbl">Models Compared</div></div>
+    <div class="stat"><div class="stat-val">SMOTE</div><div class="stat-lbl">Imbalance Fix</div></div>
+  </div>
+</div>
+
+<!-- PIPELINE -->
+<div class="section">
+  <div class="section-label">How it works</div>
+  <div class="pipeline">
+    <div class="pipe-step">
+      <div class="pipe-num">01</div>
+      <div class="pipe-title">Input customer data</div>
+      <div class="pipe-desc">9 features about tenure, charges & services</div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">02</div>
+      <div class="pipe-title">Feature scaling</div>
+      <div class="pipe-desc">StandardScaler normalizes numerical values</div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">03</div>
+      <div class="pipe-title">Model predicts</div>
+      <div class="pipe-desc">Gradient Boosting outputs churn probability</div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">04</div>
+      <div class="pipe-title">Get recommendation</div>
+      <div class="pipe-desc">Actionable retention strategy returned</div>
+    </div>
+  </div>
+</div>
+
+<!-- FORM -->
+<div class="form-wrap">
+  <div class="card">
+    <div class="card-title">Account Information</div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Tenure (months with company)</label>
+        <input type="number" id="tenure" value="2" min="0" max="72" placeholder="0 – 72">
+      </div>
+      <div class="field">
+        <label>Monthly Charges ($)</label>
+        <input type="number" id="monthly" value="85.5" min="0" step="0.5" placeholder="18 – 120">
+      </div>
+      <div class="field">
+        <label>Total Charges ($)</label>
+        <input type="number" id="total" value="171" min="0" placeholder="18 – 8700">
+      </div>
+    </div>
+
+    <div class="toggles-grid">
+      <div class="toggle-group">
+        <label>Gender</label>
+        <div class="toggle-row">
+          <button class="tog on" onclick="pick('gender',1,this)">Male</button>
+          <button class="tog" onclick="pick('gender',0,this)">Female</button>
+        </div>
+      </div>
+      <div class="toggle-group">
+        <label>Senior Citizen</label>
+        <div class="toggle-row">
+          <button class="tog" onclick="pick('senior',1,this)">Yes</button>
+          <button class="tog on" onclick="pick('senior',0,this)">No</button>
+        </div>
+      </div>
+      <div class="toggle-group">
+        <label>Partner</label>
+        <div class="toggle-row">
+          <button class="tog on" onclick="pick('partner',1,this)">Yes</button>
+          <button class="tog" onclick="pick('partner',0,this)">No</button>
+        </div>
+      </div>
+      <div class="toggle-group">
+        <label>Dependents</label>
+        <div class="toggle-row">
+          <button class="tog" onclick="pick('dep',1,this)">Yes</button>
+          <button class="tog on" onclick="pick('dep',0,this)">No</button>
+        </div>
+      </div>
+      <div class="toggle-group">
+        <label>Phone Service</label>
+        <div class="toggle-row">
+          <button class="tog on" onclick="pick('phone',1,this)">Yes</button>
+          <button class="tog" onclick="pick('phone',0,this)">No</button>
+        </div>
+      </div>
+      <div class="toggle-group">
+        <label>Paperless Billing</label>
+        <div class="toggle-row">
+          <button class="tog on" onclick="pick('paperless',1,this)">Yes</button>
+          <button class="tog" onclick="pick('paperless',0,this)">No</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="predict-btn" id="btn" onclick="predict()">
+      Predict Churn Risk →
+    </button>
+  </div>
+
+  <!-- LOADING -->
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p>Calling live API... (first request may take ~30s if server is sleeping)</p>
+  </div>
+
+  <!-- ERROR -->
+  <div class="error" id="err"></div>
+
+  <!-- RESULT -->
+  <div class="result" id="result">
+    <div class="result-top">
+      <div>
+        <div style="font-size:12px;color:#3a5a7a;margin-bottom:4px">Analysis Complete</div>
+        <div style="font-size:16px;font-weight:500;color:#c8d4e8">Churn Risk Report</div>
+      </div>
+      <span class="risk-pill" id="risk-pill">HIGH</span>
+    </div>
+
+    <div class="prob-center">
+      <div class="big-prob" id="big-prob">0%</div>
+      <div class="prob-sub">Probability of churning</div>
+      <div class="bar-track"><div class="bar-fill" id="bar"></div></div>
+    </div>
+
+    <div class="result-meta">
+      <div class="meta-box">
+        <div class="meta-label">Prediction</div>
+        <div class="meta-val" id="pred-val">—</div>
+      </div>
+      <div class="meta-box">
+        <div class="meta-label">Risk Level</div>
+        <div class="meta-val" id="risk-val">—</div>
+      </div>
+    </div>
+
+    <div class="rec">
+      <div class="rec-label">Recommended Action</div>
+      <div class="rec-text" id="rec-text">—</div>
+    </div>
+
+    <div class="api-footer">POST /predict — customer-churn-mlops-3wyj.onrender.com</div>
+  </div>
+</div>
+
+<!-- TECH STACK -->
+<div class="tech-footer">
+  <div class="tech-label">Built with</div>
+  <div class="tags">
+    <span class="tag">Python</span>
+    <span class="tag">Scikit-learn</span>
+    <span class="tag">MLflow</span>
+    <span class="tag">SMOTE</span>
+    <span class="tag">SHAP</span>
+    <span class="tag">FastAPI</span>
+    <span class="tag">Docker</span>
+    <span class="tag">GitHub Actions</span>
+    <span class="tag">Render</span>
+    <span class="tag">Gradient Boosting</span>
+  </div>
+</div>
+
+<script>
+  var vals = {gender:1, senior:0, partner:1, dep:0, phone:1, paperless:1};
+
+  function pick(key, val, el) {
+    vals[key] = val;
+    el.closest('.toggle-row').querySelectorAll('.tog').forEach(function(b){ b.classList.remove('on'); });
+    el.classList.add('on');
+  }
+
+  async function predict() {
+    var btn = document.getElementById('btn');
+    var loading = document.getElementById('loading');
+    var result = document.getElementById('result');
+    var err = document.getElementById('err');
+
+    btn.disabled = true;
+    loading.classList.add('show');
+    result.className = 'result';
+    err.className = 'error';
+
+    var payload = {
+      gender:           vals.gender,
+      SeniorCitizen:    vals.senior,
+      Partner:          vals.partner,
+      Dependents:       vals.dep,
+      tenure:           parseFloat(document.getElementById('tenure').value) || 0,
+      PhoneService:     vals.phone,
+      PaperlessBilling: vals.paperless,
+      MonthlyCharges:   parseFloat(document.getElementById('monthly').value) || 0,
+      TotalCharges:     parseFloat(document.getElementById('total').value) || 0
+    };
+
+    try {
+      var res = await fetch('https://customer-churn-mlops-3wyj.onrender.com/predict', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error('API returned status ' + res.status);
+      var data = await res.json();
+
+      loading.classList.remove('show');
+
+      var risk = data.risk_level;
+      var pct  = Math.round(data.churn_probability * 100);
+
+      document.getElementById('risk-pill').textContent = risk;
+      document.getElementById('risk-pill').className = 'risk-pill ' + risk;
+      document.getElementById('big-prob').textContent = pct + '%';
+      document.getElementById('big-prob').className = 'big-prob ' + risk;
+      document.getElementById('bar').className = 'bar-fill ' + risk;
+      document.getElementById('pred-val').textContent = data.churn_prediction === 1 ? '⚠ Will Churn' : '✓ Will Stay';
+      document.getElementById('risk-val').textContent = risk;
+      document.getElementById('rec-text').textContent = data.recommendation;
+
+      result.className = 'result show ' + risk;
+      setTimeout(function(){ document.getElementById('bar').style.width = pct + '%'; }, 80);
+
+    } catch(e) {
+      loading.classList.remove('show');
+      err.textContent = '⚠ Could not reach API. The free Render instance sleeps after inactivity — wait 30 seconds and try again. (' + e.message + ')';
+      err.className = 'error show';
+    }
+
+    btn.disabled = false;
+  }
+</script>
+</body>
+</html>
