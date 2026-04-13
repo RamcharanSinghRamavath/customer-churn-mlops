@@ -137,5 +137,5 @@ Push to `main` → Lint + Tests → Build Docker → Push DockerHub → Deploy A
 ---
 
 ## 👤 Author
-**Your Name** | AI/ML Engineer
+**Ramavath Ram Charan Singh** | AI/ML Engineer
 Update with your name, email, LinkedIn and GitHub links!
